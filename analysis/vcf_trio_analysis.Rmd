@@ -1,0 +1,348 @@
+---
+title: "VCF Trio Structural Variant Analysis"
+output:
+  html_document:
+    theme: readable
+    highlight: zenburn
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+<p style="text-align: center;">Structural variant screening and functional annotation of a parent–offspring trio</p>
+## BASH
+
+### a. Summarize the various combination of variants, their location, type and function.
+
+1. Download the data file for the bioinf-m2 group project.
+
+```{bash}
+# get-data bioinf-m2_group-project 
+```
+
+2. Begin typing this path and press Tab to view the files or folders available in that directory.
+
+```{bash}
+# cp /data/bioinf-m2_group-project/
+```
+3. Show the line(s) in the VCF file that include the word CHROM. This line typically corresponds to the header displaying the column names of the VCF.
+In this project, the DellyVariation.vcf file was used.
+
+```{bash}
+grep CHROM DellyVariation.vcf 
+```
+4. Deleting the columns from other projects and creating a new file that includes only the required data and columns (i.e., removing HG00731, HG00732, HG00733, NA19238, NA19239, NA19240, and keeping HG00512, HG00513, HG00514).
+
+```{bash}
+awk -v OFS="\t" '!/##/ {$13=$14=$15=$16=$17=$18="";print}' DellyVariation.vcf > DellyTrio1.vcf|sed 's/^\s\+//g'
+```
+
+5. The columns were removed.
+
+```{bash}
+grep CHROM DellyTrio1.vcf 
+```
+6. Number of variants present in the VCF file.
+
+```{bash}
+wc -l DellyTrio1.vcf 
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+The dataset contains 17312 genetic variations identified across the analyzed samples.
+</div>
+
+
+7. Obtain the exact number of variants in the VCF file, excluding the header lines.
+
+```{bash}
+awk '$0!~/^#/' DellyTrio1.vcf | wc -l 
+```
+8. FILTER column and determine the number of unique entries, showing how many variants are PASS compared to lowQual.
+
+```{bash}
+
+awk '$0!~/^#/ {print $7}' DellyTrio1.vcf | sort | uniq -c | sort -n
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+Out of all variants, 17152 passed quality filters (PASS) and 159 are low quality (LowQual).
+</div>
+
+
+9. Select the variants that are marked as “PASS” in the FILTER column.
+
+```{bash}
+awk '$0!~/^#/ && $7=="PASS"' DellyTrio1.vcf | head -2
+```
+10. Select multi-allelic variants. 
+```{bash}
+awk '$0!~/^#/ && $5~/,/' DellyTrio1.vcf
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+No multi-allelic variants were detected in the VCF file.
+</div>
+
+11. Select bi-allelic SNPs.
+```{bash}
+awk '$0!~/^#/ && $5!~/,/ && length($4)==1 && length($5)==1' DellyTrio1.vcf
+
+awk '$0!~/^#/ && $5!~/,/ && length($4)==1 && length($5)==1' DellyTrio1.vcf | sort | uniq -c
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+No simple bi-allelic SNPs were found in the VCF file.
+</div>
+
+
+12. Select bi-allelic variants. 
+```{bash}
+
+awk '$0!~/^#/ && $5!~/,/' DellyTrio1.vcf | head -2
+
+awk '$0!~/^#/ && $5!~/,/' DellyTrio1.vcf | cut -f4,5 | head -2
+
+```
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+The VCF file contains variants, including deletions (DEL) and insertions (INS). No simple SNPs were detected.
+</div>
+
+### b. Identify de novo mutation in the trio.
+13. Deletes all lines that contain ‘N’
+```{bash}
+awk 'BEGIN{OFS="\t"} /^#/ {print; next} $4 != "N"' DellyTrio1.vcf > CleanDellyTrio1Pass.vcf 
+head -2 CleanDellyTrio1Pass.vcf
+```
+
+14.  Identifying de novo mutations.
+```{bash}
+awk '$0!~/^#/ && $11 ~ /^0\/0/ && $10 ~ /^0\/0/ && $12 !~ /^0\/0/ && $12 !~ /^\.\/\./' CleanDellyTrio1Pass.vcf > family.denovo.vcf 
+
+
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+When we first looked for de novo mutations, three sites were found, but all contained ambiguous bases (N). After removing these ambiguous positions, *no de novo* mutations were detected.
+</div>
+
+15. Start by creating a table of genotypes for variants marked as "PASS".
+```{bash}
+awk '$0!~/^#/ && $7=="PASS" {s=$1"\t"$2 ; for (i = 10; i <= NF; i++) {split($i,x,":") ; s=s"\t"x[1]}; print s}' CleanDellyTrio1Pass.vcf > genotypes.txt
+```
+
+16. Determining which sample corresponds to the child, father and mother.
+
+16.1. **Child**
+```{bash}
+for nn in 3,4 3,5 4,5 ; do echo "----------> $nn" ; cut -f $nn genotypes.txt | awk '($1=="0/0" && $2=="1/1") || ($2=="0/0" && $1=="1/1")' | wc -l ; done
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+The child corresponds to the sample whose genotypes would differ from both parents. In our dataset, after checking the columns, HG00514 was identified as the child.
+</div>
+
+16.2. **Mother and father.** Finding the different information in the FORMAT column
+ 
+```{bash}
+grep FORMAT DellyVariation.vcf 
+
+```
+
+16.3. Creating a table of reads on the chromosomes and removing entries containing 0 0 0 [Adapting genotype table code]
+
+```{bash}
+awk '$0!~/^#/ && $7=="PASS" {s=$1"\t"$2 ; for (i = 10; i <= NF; i++) {split($i,x,":") ; s=s"\t"x[6]}; print s}' CleanDellyTrio1Pass.vcf > ReadCounts.txt
+
+awk '!($3==0 && $4==0 && $5==0)' ReadCounts.txt > CleanReadCounts.txt
+
+```
+16.4.  Comparing read counts between samples
+
+```{r}
+library(stringr)
+readcounts <- read.delim('CleanReadCounts.txt',header = F)
+colnames(readcounts) <- c("Chr","Position","HG00512","HG00513","Child")
+chromX <- readcounts[readcounts$Chr == "chrX", ]
+head(chromX)
+
+sum(chromX$HG00512)
+sum(chromX$HG00513)
+sum(chromX$Child)
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+By looking at the read counts of the samples, we can identify that HG00512 must be the father due to having a lower read count on the X chromosome compared to the other two samples. This is because males have 1 X chromosome while females have 2 X chromosomes. We can also conclude that HG00513 and the child must be female.
+</div>
+
+16.5. Making bar chart of read counts on chromosome X for visualisation
+
+```{r}
+library(dplyr)
+library(RColorBrewer)
+library(viridis)
+library(ggplot2)
+
+readcounts <- c(sum((chromX$HG00512) / 251), sum((chromX$HG00513) / 251), sum((chromX$Child) / 251))
+samples <- c("HG00512", "HG00513", "Child")
+readcountdf <- data.frame(Sample = factor(samples, levels = c("HG00512", "HG00513", "Child")), Reads = readcounts, Sex = c("Male","Female","Child"))
+
+barplot(readcountdf$Reads, names.arg = readcountdf$Sample, main = 'X Chromosome Reads', xlab = 'Samples', ylab = 'Reads', ylim = c(0, 4500), col =brewer.pal(n = 1, name = "RdBu"), las = 1, cex.names = 0.7)
+
+```
+
+
+## ANNOVAR 
+
+### c. Annotate the variants of interest 
+
+17. The VCF file was converted into Avinput format for analysis with ANNOVAR.
+```{bash}
+# perl convert2annovar.pl -format vcf4 CleanDellyTrio1Pass.vcf > CleanedDT1Pass.avinput
+```
+
+18. The ANNOVAR tool and its databases (hg38 human) required for analysis were obtained from the official [ANNOVAR website](https://annovar.openbioinformatics.org/en/latest/user-guide/download/).
+
+```{bash}
+
+#perl annotate_variation.pl -buildver hg38 -downdb -webfrom annovar refGeneWithVer humandb/
+#perl annotate_variation.pl -buildver hg38 -downdb cytoBand humandb/
+#perl annotate_variation.pl -buildver hg38 -downdb -webfrom annovar gnomad41_genome humandb/
+#perl annotate_variation.pl -buildver hg38 -downdb -webfrom annovar clinvar_20250721 humandb/
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+These databases allow us to obtain important scores for the analysis of the variants of interest. According to ANNOVAR, each corresponds to: `refGeneWithVer`: Gene annotation, `cytoBand`: To identify Giemsa-stained chromosomes bands, `gnomad41_genome`: Genome Aggregation Database version 4.1 whole-genome data, `clinvar_20250721`: CLINVAR database with Variant Clinical Significance.
+</div>
+
+
+19. Run ANNOVAR to get a csv file with all the variants.
+
+```{bash}
+
+# perl table_annovar.pl CleanedDT1Pass.avinput
+# humandb/ 
+# -buildver hg38 -out hg38test -remove -protocol 
+# refGeneWithVer,cytoBand,gnomad41_genome,clinvar_20250721 
+# -operation gx,r,f,f 
+# -nastring . -csvout -polish -xreffile example/gene_fullxref.txt
+```
+## R 
+
+20. Running the csv file in R
+
+```{r}
+library(tidyverse)
+
+df <- read.csv(file="annovar_output.csv", header = T)
+
+filter_variants <- c("nonframeshift insertion", "frameshift deletion","nonframeshift deletion")
+
+data_filter <-filter(df, ExonicFunc.refGeneWithVer %in% filter_variants) %>% select(Chr, Start, End)
+
+head(data_filter,8)
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+The results were filtered taking into account the type of mutation present, which yielded a total of eight positions across chromosomes 1, 2, 3, 4, 9, 14, and 18.
+</div>
+
+
+21. Searching for combinations of variants at the eight identified positions in the avinput file.
+
+
+```{r}
+df_avinput <- read.table(file="CleanedDT1Pass.avinput", header = F) %>% select(V1,V2,V3,V4,V5,V6)
+colnames (df_avinput) = c ("Chr","Start","End","Ref","Alt","Genotype")
+
+select_chrom <- c("177960892", "108259009", "214780779", "195791241", "1093539", "76703460", "20060290", "2906779")
+data_chrom <-filter(df_avinput, Start %in% select_chrom) 
+
+head(data_chrom,8)
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+The result shows that six genes are heterozygous and two are homozygous.
+</div>
+
+22. Bar chart of chromosome location
+
+```{r}
+
+ChromosomeOrder <- c("chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX")
+Chrom <- table(df$Chr)
+Chrom_ordered <- Chrom[ChromosomeOrder]
+
+barplot(Chrom_ordered,
+        main = 'Variant Locations',
+        xlab = 'Chromosome',
+        ylab = 'Frequency',
+                ylim = c(0, 500), 
+        col =brewer.pal(n = 8, name = "RdBu"),
+        las = 2,           
+        cex.names = 0.7)
+
+chrm_perc <- table(df$Chr)
+chrm_percent <- round(chrm_perc / sum(chrm_perc) * 100, 1)
+
+```
+
+23. Pie chart for types of variants
+
+```{r}
+Variants <- table(df$ExonicFunc.refGeneWithVer)
+filter_var <- data.frame(Variants[-c(1,5)])
+filter_var$Percent <- round(filter_var$Freq / sum(filter_var$Freq) * 100, 1)
+head(filter_var)
+ggplot(filter_var, aes(x="", y=Freq, fill=Var1)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void() + 
+  scale_fill_brewer(palette="Accent") 
+
+
+```
+
+
+24. Frequency table for region function.
+```{r}
+regions <- table(df$Func.refGeneWithVer)
+regions <- sort(regions, decreasing = T)
+regionsdf <- data.frame(Region = names(regions), Freq = as.numeric(regions))
+
+regionsdf$Percent <- (regionsdf$Freq / sum(regionsdf$Freq)) * 100
+
+print(regionsdf)
+
+```
+
+
+25. Finding out how many insertions and deletions are in the VCF file
+
+```{bash}
+
+egrep -c "SVTYPE=INS" CleanDellyTrio1Pass.vcf
+egrep -c "SVTYPE=DEL" CleanDellyTrio1Pass.vcf
+
+```
+
+<div style="background-color:#f0ffff; padding:10px; border-left:5px solid #1E90FF; border-radius:5px; margin-bottom:10px;">
+Exonic variants can directly affect protein coding regions, whereas intronic variants may influence regulatory sequences such as enhancers or splice sites.
+</div>
+26. Pie chart for insertions and deletions
+
+```{r}
+sections <- c(9444, 5315)
+labels <- c("Deletions","Insertions")
+percentages <- round(sections/sum(sections)*100, digits=2)
+labels <- paste(labels, percentages)
+labels <- paste(labels, "%", sep="")
+pie(sections, labels=labels, col=rainbow(length(labels)), main="Variant Types")
+```
+
+

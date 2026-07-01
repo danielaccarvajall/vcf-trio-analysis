@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────
+# Raw & intermediate genomic data — NEVER commit these
+# (large, and in this project course-restricted / not shareable)
+# ─────────────────────────────────────────────────────────────
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.bam
+*.bai
+*.sam
+*.cram
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.avinput
+*.bed
+*.fa
+*.fasta
+*.fai
+
+# ANNOVAR databases and outputs (large / regenerable)
+humandb/
+*.exonic_variant_function
+*.variant_function
+*.multianno.*
+
+# Project-generated intermediate tables
+genotypes.txt
+ReadCounts.txt
+CleanReadCounts.txt
+CleanDellyTrio1Pass.vcf
+DellyTrio1.vcf
+family.denovo.vcf
+
+# Allow the annotation CSV to be ignored by default (regenerable output).
+# Delete this line if you deliberately want to share a de-identified CSV.
+annovar_output.csv
+
+# ─────────────────────────────────────────────────────────────
+# R / RStudio
+# ─────────────────────────────────────────────────────────────
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+*_cache/
+*_files/
+/*.html          # knitted HTML output at repo root
+.Renviron
+
+# renv (if you adopt it later)
+renv/library/
+renv/staging/
+
+# ─────────────────────────────────────────────────────────────
+# OS / editor cruft
+# ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*~
+.idea/
+.vscode/

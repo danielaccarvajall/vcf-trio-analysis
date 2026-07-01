@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this analysis, please cite it as below."
+title: "VCF Trio Analysis — Structural Variant Screening & Annotation"
+abstract: >-
+  Analysis of Delly structural-variant calls in a parent-offspring trio,
+  including de novo mutation screening, sample-role inference, and functional
+  annotation of variants of interest with ANNOVAR.
+authors:
+  - name: "danielaccarvajall"
+version: "1.0.0"
+date-released: "2025-11-20"
+license: MIT
+repository-code: "https://github.com/danielaccarvajall/vcf-trio-analysis"
+keywords:
+  - bioinformatics
+  - VCF
+  - structural variants
+  - de novo mutation
+  - ANNOVAR
+  - trio analysis
