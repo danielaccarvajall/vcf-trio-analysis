@@ -1,7 +1,6 @@
-# ─────────────────────────────────────────────────────────────
 # Raw & intermediate genomic data — NEVER commit these
 # (large, and in this project course-restricted / not shareable)
-# ─────────────────────────────────────────────────────────────
+
 *.vcf
 *.vcf.gz
 *.vcf.gz.tbi
@@ -37,9 +36,7 @@ family.denovo.vcf
 # Delete this line if you deliberately want to share a de-identified CSV.
 annovar_output.csv
 
-# ─────────────────────────────────────────────────────────────
 # R / RStudio
-# ─────────────────────────────────────────────────────────────
 .Rproj.user/
 .Rhistory
 .RData
@@ -54,9 +51,7 @@ annovar_output.csv
 renv/library/
 renv/staging/
 
-# ─────────────────────────────────────────────────────────────
 # OS / editor cruft
-# ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 *~
